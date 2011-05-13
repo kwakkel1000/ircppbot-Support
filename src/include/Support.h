@@ -1,3 +1,27 @@
+//
+//
+//  @ Project : ircppbot
+//  @ File Name : Support.h
+//  @ Date : 4/18/2011
+//  @ Author : Gijs Kwakkel
+//
+//
+// Copyright (c) 2011 Gijs Kwakkel
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+//
+
 #ifndef Support_H
 #define Support_H
 #include <core/ModuleBase.h>
@@ -24,7 +48,8 @@ private:
     void parse_raw();
     void parse_privmsg();
     void ParseData(std::vector< std::string > data);
-    void ParsePrivmsg(std::vector<std::string> data, std::string command, std::string chan, std::vector< std::string > args, int chantrigger);
+    void ParsePrivmsg(std::string nick, std::string command, std::string chan, std::vector< std::string > args, int chantrigger);
+    void work(std::string nick, std::string auth, int oa);
     void support(std::string nick, std::string auth, std::string supportstring);
 
     void timerlong();
@@ -35,6 +60,7 @@ private:
     int longtime;
 
     bool run;
+    std::string command_table;
     boost::shared_ptr<boost::thread> raw_parse_thread;
     boost::shared_ptr<boost::thread> privmsg_parse_thread;
 

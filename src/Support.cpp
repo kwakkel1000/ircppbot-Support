@@ -1,9 +1,35 @@
+//
+//
+//  @ Project : ircppbot
+//  @ File Name : Support.cpp
+//  @ Date : 4/18/2011
+//  @ Author : Gijs Kwakkel
+//
+//
+// Copyright (c) 2011 Gijs Kwakkel
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+//
+
+
 #include "include/Support.h"
 #include <core/Global.h>
 #include <iostream>
 #include <algorithm>
 #include <map>
 #include <boost/algorithm/string.hpp>
+#include <core/DatabaseData.h>
 extern "C" ModuleInterface* create()
 {
     return new Support;
@@ -30,6 +56,8 @@ void Support::Init(DataInterface* pData)
 	mpDataInterface->Init(true, false, false, true);
     Global::Instance().get_IrcData().AddConsumer(mpDataInterface);
     timerlong();
+    command_table = "SupportCommands";
+    DatabaseData::Instance().DatabaseData::AddBinds(command_table);
 }
 
 
@@ -79,58 +107,54 @@ void Support::ParseData(std::vector< std::string > data)
 }
 
 
-void Support::ParsePrivmsg(std::vector<std::string> data, std::string command, std::string chan, std::vector< std::string > args, int chantrigger)
+void Support::ParsePrivmsg(std::string nick, std::string command, std::string chan, std::vector< std::string > args, int chantrigger)
 {
     UsersInterface& U = Global::Instance().get_Users();
-    std::string nick = HostmaskToNick(data);
     std::string auth = U.GetAuth(nick);
-    /*if (args.size() == 0)
-    {
-        for (unsigned int i = 0; i < binds.size(); i++)
-        {
-            if (boost::iequals(command, binds[i]))
-            {
-                if (boost::iequals(commands[i], "auth"))
-                {
-                    authme(nick, cas[i]);
-                    overwatch(commands[i], command, chan, nick, auth, args);
-                }
-                if (boost::iequals(commands[i], "reloadchan"))
-                {
-                    DBChannelInfo(chan);
-                    overwatch(commands[i], command, chan, nick, auth, args);
-                }
-            }
-        }
-    }*/
-    /*if (args.size() >= 1)
-    {
-        for (unsigned int i = 0; i < binds.size(); i++)
-        {
-            if (boost::iequals(command, binds[i]))
-            {
-                if (boost::iequals(commands[i], "support"))
-                {
-                	std::string supportstring = args[0];
-					if (args.size() >= 2)
-					{
-						for (unsigned int i = 1; i < args.size(); i++)
-						{
-							supportstring = supportstring + " " + args[i];
-						}
-					}
-                    support(nick, auth, supportstring);
-                    overwatch(commands[i], command, chan, nick, auth, args);
-                }
-            }
-        }
-    }*/
+    std::string bind_command = DatabaseData::Instance().GetCommandByBindNameAndBind(command_table, command);
+    int bind_access = DatabaseData::Instance().GetAccessByBindNameAndBind(command_table, command);
+	std::cout << bind_command << " " << bind_access << std::endl;
+
+	// work
+	if (boost::iequals(bind_command, "work"))
+	{
+		if (args.size() >= 1)
+		{
+			work(nick, auth, bind_access);
+		}
+		else
+		{
+			//help(bind_command);
+		}
+		overwatch(bind_command, command, chan, nick, auth, args);
+	}
+
+	// support
+	if (boost::iequals(bind_command, "support"))
+	{
+		if (args.size() >= 1)
+		{
+			std::string supportstring = args[0];
+			if (args.size() >= 2)
+			{
+				for (unsigned int i = 1; i < args.size(); i++)
+				{
+					supportstring = supportstring + " " + args[i];
+				}
+			}
+			support(nick, auth, supportstring);
+		}
+		else
+		{
+			//help(bind_command);
+		}
+		overwatch(bind_command, command, chan, nick, auth, args);
+	}
 }
 
 
 void Support::timerrun()
 {
-    //cout << "channelbot::timerrun()" << endl;
     int Tijd;
     time_t t= time(0);
     Tijd = t;
@@ -167,6 +191,23 @@ void Support::timerlong()
             timer_long_sec.erase(timer_long_sec.begin()+i);
             timer_long_command.erase(timer_long_command.begin()+i);
         }
+    }
+}
+
+void Support::work(std::string nick, std::string auth, int oa)
+{
+	UsersInterface& U = Global::Instance().get_Users();
+    std::string returnstring;
+    int oaccess = U.GetOaccess(nick);
+    if (oaccess >= oa)
+    {
+        returnstring = "NOTICE " + nick + " :" + irc_reply("say", U.GetLanguage(nick)) + "\r\n";
+        Send(returnstring);
+    }
+    else
+    {
+        returnstring = "NOTICE " + nick + " :" + irc_reply("need_oaccess", U.GetLanguage(nick)) + "\r\n";
+        Send(returnstring);
     }
 }
 
